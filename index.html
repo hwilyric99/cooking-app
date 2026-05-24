@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🍳 AI 쿠킹 클래스</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root{
+  --primary:#FF6B35;--primary-dark:#E5531F;--primary-light:#FF8C5A;
+  --secondary:#FFF5E4;--accent:#FFD700;--text:#3D2B1F;--text-light:#7A5C4E;
+  --bg:#FFFBF5;--success:#4CAF50;--success-dark:#388E3C;--card-bg:#FFFFFF;
+  --border:#F0DDD0;--shadow:rgba(61,43,31,0.12);--radius:18px;--radius-sm:10px;--radius-xs:6px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+.bg-floaters{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0;}
+.floater{position:absolute;font-size:2rem;opacity:.07;animation:float-drift linear infinite;user-select:none;}
+@keyframes float-drift{0%{transform:translateY(110vh) rotate(0);opacity:0}5%{opacity:.07}95%{opacity:.07}100%{transform:translateY(-15vh) rotate(360deg);opacity:0}}
+.page-wrapper{position:relative;z-index:1;max-width:860px;margin:0 auto;padding:0 16px 80px;}
+.site-header{background:linear-gradient(135deg,#FF6B35 0%,#FF8C5A 45%,#FFB347 100%);margin:0 -16px;padding:48px 16px 60px;text-align:center;position:relative;overflow:hidden;box-shadow:0 8px 32px rgba(255,107,53,.35);}
+.site-header::before{content:"";position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.06'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/svg%3E");}
+.chef-character{display:block;margin:0 auto 24px;width:120px;height:165px;filter:drop-shadow(0 6px 16px rgba(0,0,0,.25));animation:chef-bob 3s ease-in-out infinite;}
+@keyframes chef-bob{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-8px) rotate(1deg)}}
+.header-title{font-weight:900;font-size:clamp(2rem,6vw,3rem);color:#fff;text-shadow:0 3px 12px rgba(0,0,0,.25);letter-spacing:-1px;line-height:1.1;margin-bottom:12px;}
+.header-subtitle{font-size:clamp(.875rem,2.5vw,1rem);color:rgba(255,255,255,.92);font-weight:400;max-width:480px;margin:0 auto;line-height:1.6;}
+.header-wave{position:absolute;bottom:-1px;left:0;width:100%;height:50px;}
+.input-card{background:var(--card-bg);border-radius:var(--radius);padding:32px 28px;margin-top:32px;box-shadow:0 4px 24px var(--shadow),0 1px 4px rgba(0,0,0,.06);border:1px solid var(--border);}
+.input-label{display:block;font-weight:700;font-size:1rem;color:var(--text);margin-bottom:12px;}
+.input-label span{color:var(--primary);}
+.search-row{display:flex;gap:10px;margin-bottom:16px;}
+.recipe-input{flex:1;padding:14px 20px;border:2px solid var(--border);border-radius:var(--radius-sm);font-family:"Noto Sans KR",sans-serif;font-size:1rem;color:var(--text);background:var(--bg);transition:border-color .2s,box-shadow .2s;outline:none;}
+.recipe-input::placeholder{color:#C4A99A;}
+.recipe-input:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(255,107,53,.12);background:#fff;}
+.btn-search{padding:14px 26px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border:none;border-radius:var(--radius-sm);font-family:"Noto Sans KR",sans-serif;font-weight:700;font-size:.95rem;cursor:pointer;white-space:nowrap;transition:transform .15s,box-shadow .15s;box-shadow:0 4px 14px rgba(255,107,53,.4);}
+.btn-search:hover{transform:translateY(-2px) scale(1.03);box-shadow:0 8px 24px rgba(255,107,53,.45);}
+.btn-search:active{transform:translateY(0) scale(.98);}
+.btn-search:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+.example-label{font-size:.82rem;color:var(--text-light);font-weight:500;margin-bottom:8px;}
+.example-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px;}
+.chip{padding:6px 14px;border-radius:999px;border:1.5px solid var(--border);background:var(--secondary);color:var(--text);font-size:.85rem;font-weight:500;cursor:pointer;transition:all .2s;font-family:"Noto Sans KR",sans-serif;}
+.chip:hover{border-color:var(--primary);color:var(--primary);background:#FFF0E8;transform:translateY(-2px);box-shadow:0 4px 10px rgba(255,107,53,.15);}
+.pdf-section-title{font-weight:700;font-size:.9rem;color:var(--text-light);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.pdf-drop-zone{border:2px dashed #D9C5BB;border-radius:var(--radius-sm);padding:24px;text-align:center;cursor:pointer;transition:all .2s;background:#FDFAF7;position:relative;}
+.pdf-drop-zone:hover,.pdf-drop-zone.dragover{border-color:var(--primary);background:#FFF5EE;}
+.pdf-drop-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.pdf-drop-icon{font-size:2.2rem;margin-bottom:8px;}
+.pdf-drop-text{font-size:.9rem;color:var(--text-light);line-height:1.5;}
+.pdf-drop-text strong{color:var(--primary);}
+.pdf-filename{margin-top:10px;display:none;align-items:center;gap:8px;padding:8px 14px;background:#E8F5E9;border-radius:var(--radius-xs);font-size:.88rem;color:var(--success-dark);font-weight:600;}
+.pdf-filename.visible{display:flex;}
+.loading-state{display:none;text-align:center;padding:48px 24px;background:var(--card-bg);border-radius:var(--radius);margin-top:28px;box-shadow:0 4px 24px var(--shadow);border:1px solid var(--border);}
+.loading-state.visible{display:block;}
+.cooking-anim{font-size:3.5rem;display:block;margin:0 auto 16px;animation:cooking-bounce .7s ease-in-out infinite alternate;}
+@keyframes cooking-bounce{0%{transform:translateY(0) rotate(-5deg) scale(1)}100%{transform:translateY(-12px) rotate(5deg) scale(1.1)}}
+.loading-dots{display:inline-flex;gap:6px;margin-top:6px;}
+.loading-dots span{width:8px;height:8px;background:var(--primary);border-radius:50%;display:inline-block;animation:dot-pulse 1.2s ease-in-out infinite;}
+.loading-dots span:nth-child(2){animation-delay:.2s;}
+.loading-dots span:nth-child(3){animation-delay:.4s;}
+@keyframes dot-pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+.loading-text{font-size:1rem;font-weight:600;color:var(--text-light);margin-bottom:10px;}
+#results-area{margin-top:28px;display:flex;flex-direction:column;gap:24px;}
+.recipe-card{background:var(--card-bg);border-radius:var(--radius);overflow:hidden;box-shadow:0 4px 24px var(--shadow),0 1px 4px rgba(0,0,0,.05);border:1px solid var(--border);animation:card-enter .45s cubic-bezier(.23,1,.32,1) both;}
+@keyframes card-enter{from{opacity:0;transform:translateY(24px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+.recipe-card-header{background:linear-gradient(135deg,var(--primary),var(--primary-dark));padding:22px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.recipe-title{font-weight:900;font-size:1.3rem;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.2);flex:1;}
+.recipe-card-actions{display:flex;gap:8px;}
+.btn-icon{width:36px;height:36px;border-radius:50%;border:none;background:rgba(255,255,255,.2);color:#fff;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s,transform .15s;}
+.btn-icon:hover{background:rgba(255,255,255,.35);transform:scale(1.1);}
+.recipe-body{padding:28px;}
+.section-label{display:flex;align-items:center;gap:8px;font-weight:700;font-size:1rem;color:var(--text);margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid var(--secondary);}
+.ingredients-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px;}
+.ingredient-badge{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:999px;background:var(--secondary);border:1.5px solid #F0DDD0;font-size:.88rem;font-weight:500;color:var(--text);transition:all .2s;animation:badge-pop .3s cubic-bezier(.34,1.56,.64,1) both;}
+.ingredient-badge:hover{background:#FFE8D8;border-color:var(--primary-light);transform:translateY(-2px);}
+@keyframes badge-pop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
+.steps-list{display:flex;flex-direction:column;gap:12px;list-style:none;}
+.step-card{display:flex;gap:14px;padding:16px 18px;background:#FDFAF7;border-radius:var(--radius-sm);border:1px solid var(--border);transition:all .2s;animation:step-slide .4s cubic-bezier(.23,1,.32,1) both;}
+.step-card:hover{background:#FFF5EE;border-color:#F5C9B0;transform:translateX(4px);}
+@keyframes step-slide{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:translateX(0)}}
+.step-number{min-width:32px;height:32px;background:var(--primary);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;flex-shrink:0;box-shadow:0 3px 8px rgba(255,107,53,.35);}
+.step-text{font-size:.95rem;line-height:1.65;color:var(--text);padding-top:4px;}
+.streaming-text{font-size:.95rem;line-height:1.8;color:var(--text);white-space:pre-wrap;padding:8px 0;}
+.card-footer{display:flex;gap:10px;padding:0 28px 28px;flex-wrap:wrap;}
+.btn-secondary{padding:10px 20px;border-radius:var(--radius-xs);border:1.5px solid var(--border);background:var(--card-bg);color:var(--text-light);font-family:"Noto Sans KR",sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px;}
+.btn-secondary:hover{border-color:var(--primary);color:var(--primary);background:#FFF0E8;transform:translateY(-1px);}
+#btn-reset{display:none;margin:0 auto;padding:12px 28px;background:transparent;border:2px solid var(--border);border-radius:999px;color:var(--text-light);font-family:"Noto Sans KR",sans-serif;font-size:.9rem;font-weight:600;cursor:pointer;transition:all .2s;}
+#btn-reset:hover{border-color:var(--primary);color:var(--primary);}
+#btn-reset.visible{display:block;}
+.toast-container{position:fixed;bottom:28px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:10px;align-items:flex-end;}
+.toast{padding:14px 20px;border-radius:var(--radius-sm);font-size:.9rem;font-weight:600;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.2);animation:toast-in .35s cubic-bezier(.23,1,.32,1);max-width:320px;line-height:1.5;display:flex;align-items:center;gap:8px;}
+.toast.info{background:#3D86E0;}.toast.success{background:var(--success);}.toast.warning{background:#F5A623;}.toast.error{background:#E53935;}
+.toast.fade-out{animation:toast-out .3s ease forwards;}
+@keyframes toast-in{from{opacity:0;transform:translateY(20px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes toast-out{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(10px)}}
+.error-card{background:#FFF5F5;border:1.5px solid #FFCDD2;border-radius:var(--radius);padding:28px;text-align:center;animation:card-enter .4s ease both;}
+.error-card .error-icon{font-size:2.5rem;margin-bottom:10px;}
+.error-card p{color:#C62828;font-weight:600;margin-bottom:6px;}
+.error-card small{color:#7A5C4E;font-size:.85rem;}
+:focus-visible{outline:3px solid var(--primary);outline-offset:2px;}
+@media(max-width:600px){
+  .site-header{padding:36px 16px 52px;}
+  .chef-character{width:90px;height:120px;}
+  .input-card{padding:22px 18px;}
+  .search-row{flex-direction:column;}
+  .btn-search{width:100%;padding:14px;}
+  .recipe-body{padding:20px 16px;}
+  .card-footer{padding:0 16px 20px;}
+  .recipe-card-header{padding:18px 20px;}
+  .recipe-title{font-size:1.1rem;}
+  .step-card{padding:12px 14px;}
+}
+</style>
+</head>
+<body>
+<div class="bg-floaters" aria-hidden="true" id="bg-floaters"></div>
+<div class="page-wrapper">
+  <header class="site-header" role="banner">
+    <svg class="chef-character" viewBox="0 0 120 165" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="귀여운 요리사 캐릭터">
+      <ellipse cx="60" cy="51" rx="28" ry="8" fill="#EEEEEE"/>
+      <rect x="36" y="30" width="48" height="24" rx="6" fill="#FFFFFF"/>
+      <ellipse cx="60" cy="32" rx="20" ry="15" fill="#FFFFFF"/>
+      <rect x="36" y="49" width="48" height="7" rx="3" fill="#F0DDD0"/>
+      <circle cx="60" cy="80" r="26" fill="#FFDBB5"/>
+      <ellipse cx="46" cy="86" rx="7" ry="5" fill="#FFB8A0" opacity="0.6"/>
+      <ellipse cx="74" cy="86" rx="7" ry="5" fill="#FFB8A0" opacity="0.6"/>
+      <ellipse cx="52" cy="77" rx="4" ry="5" fill="#3D2B1F"/>
+      <ellipse cx="68" cy="77" rx="4" ry="5" fill="#3D2B1F"/>
+      <circle cx="54" cy="75" r="1.5" fill="white"/>
+      <circle cx="70" cy="75" r="1.5" fill="white"/>
+      <path d="M 50 89 Q 60 97 70 89" stroke="#C67A5C" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <ellipse cx="60" cy="83" rx="3" ry="2" fill="#FFBC8A"/>
+      <rect x="36" y="102" width="48" height="48" rx="12" fill="#FFFFFF"/>
+      <path d="M 48 102 L 72 102 L 68 120 Q 60 126 52 120 Z" fill="#FF6B35"/>
+      <rect x="53" y="128" width="14" height="13" rx="4" fill="#FFF5E4" stroke="#F0DDD0" stroke-width="1.5"/>
+      <rect x="20" y="104" width="18" height="9" rx="4.5" fill="#FFDBB5" transform="rotate(-25,29,108)"/>
+      <rect x="5" y="90" width="19" height="4" rx="2" fill="#AAAAAA"/>
+      <circle cx="5" cy="92" r="7" fill="#CCCCCC" stroke="#999" stroke-width="1.2"/>
+      <rect x="82" y="104" width="18" height="9" rx="4.5" fill="#FFDBB5" transform="rotate(25,91,108)"/>
+      <rect x="97" y="89" width="18" height="4" rx="2" fill="#666666"/>
+      <ellipse cx="115" cy="91" rx="11" ry="9" fill="#555555" stroke="#444" stroke-width="1.5"/>
+      <ellipse cx="115" cy="89" rx="6" ry="4.5" fill="#FFEC8B" opacity="0.9"/>
+      <circle cx="115" cy="89" r="2.8" fill="white"/>
+      <rect x="47" y="146" width="11" height="16" rx="5.5" fill="#FF6B35"/>
+      <rect x="62" y="146" width="11" height="16" rx="5.5" fill="#FF6B35"/>
+      <ellipse cx="52" cy="161" rx="9" ry="5" fill="#3D2B1F"/>
+      <ellipse cx="67" cy="161" rx="9" ry="5" fill="#3D2B1F"/>
+    </svg>
+    <h1 class="header-title">🍳 AI 쿠킹 클래스</h1>
+    <p class="header-subtitle">먹고 싶은 음식을 입력하면 AI 요리사가 레시피를 알려드려요!</p>
+    <svg class="header-wave" viewBox="0 0 1440 50" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M0,30 C240,55 480,5 720,30 C960,55 1200,5 1440,30 L1440,50 L0,50 Z" fill="#FFFBF5"/>
+    </svg>
+  </header>
+  <main id="main-content">
+    <section class="input-card" aria-label="레시피 검색">
+      <label class="input-label" for="recipe-input"><span>🍽</span> 어떤 음식을 만들어볼까요?</label>
+      <div class="search-row">
+        <input id="recipe-input" class="recipe-input" type="text"
+          placeholder="예: 된장찌개, 김치볶음밥, 파스타"
+          aria-label="음식 이름 입력 (쉼표로 여러 개 가능)" autocomplete="off">
+        <button class="btn-search" id="btn-search" onclick="handleSearch()">🔍 레시피 찾기</button>
+      </div>
+      <p class="example-label">자주 찾는 메뉴</p>
+      <div class="example-chips" role="list">
+        <button class="chip" role="listitem" onclick="fillExample('된장찌개')">🍲 된장찌개</button>
+        <button class="chip" role="listitem" onclick="fillExample('김치볶음밥')">🍳 김치볶음밥</button>
+        <button class="chip" role="listitem" onclick="fillExample('파스타')">🍝 파스타</button>
+        <button class="chip" role="listitem" onclick="fillExample('삼겹살')">🥩 삼겹살</button>
+        <button class="chip" role="listitem" onclick="fillExample('비빔밥')">🍱 비빔밥</button>
+      </div>
+      <div>
+        <p class="pdf-section-title"><span>📄</span> PDF 레시피 분석</p>
+        <div class="pdf-drop-zone" id="pdf-drop-zone" role="button" tabindex="0"
+          aria-label="PDF 파일을 드래그하거나 클릭하여 업로드"
+          onkeydown="if(event.key==='Enter'||event.key===' ')document.getElementById('pdf-file-input').click()">
+          <input type="file" id="pdf-file-input" accept=".pdf"
+            aria-label="PDF 파일 선택" onchange="handlePDFSelect(event)">
+          <div class="pdf-drop-icon">📂</div>
+          <p class="pdf-drop-text"><strong>클릭하거나 PDF를 드래그</strong>하여 올려주세요<br><small>최대 10MB · PDF 파일만 지원</small></p>
+        </div>
+        <div class="pdf-filename" id="pdf-filename" role="status" aria-live="polite">
+          <span>✅</span><span id="pdf-name-text"></span>
+          <button onclick="clearPDF()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:#666;font-size:1rem;" aria-label="PDF 파일 제거">✕</button>
+        </div>
+      </div>
+    </section>
+    <div class="loading-state" id="loading-state" role="status" aria-live="polite">
+      <span class="cooking-anim" aria-hidden="true">🍲</span>
+      <p class="loading-text" id="loading-text">AI 요리사가 레시피를 준비하고 있어요...</p>
+      <div class="loading-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+    </div>
+    <div id="results-area" aria-live="polite"></div>
+    <button id="btn-reset" onclick="resetAll()">🔄 새로운 레시피 찾기</button>
+  </main>
+</div>
+<div class="toast-container" id="toast-container" aria-live="assertive" aria-atomic="true"></div>
+<script>
+var CONFIG={
+  OPENROUTER_API_KEY:'',
+  OPENAI_API_KEY:'',
+  OPENROUTER_MODEL:'deepseek/deepseek-v4-flash:free',
+  OPENAI_MODEL:'gpt-4o-mini',
+  MAX_MENUS:5,
+  PDF_MAX_BYTES:10485760
+};
+if(typeof pdfjsLib!=='undefined')
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+var isLoading=false,selectedPDFFile=null;
+(function(){
+  var em=['🥕','🧅','🍅','🥦','🌶️','🧄','🥚','🍖','🍜','🥘','🥗','🍱','🫕','🫑','🧀','🥓','🫛','🍋','🥩','🫙'];
+  var c=document.getElementById('bg-floaters');
+  em.forEach(function(e,i){
+    var el=document.createElement('span');el.className='floater';el.textContent=e;
+    el.style.cssText='left:'+(i/em.length*100+Math.random()*4)+'%;animation-duration:'+(18+Math.random()*22)+'s;animation-delay:'+(-Math.random()*25)+'s;font-size:'+(1.6+Math.random()*1.4)+'rem';
+    c.appendChild(el);
+  });
+})();
+function showToast(msg,type,duration){
+  type=type||'info';duration=duration||4000;
+  var icons={info:'ℹ️',success:'✅',warning:'⚠️',error:'❌'};
+  var t=document.createElement('div');t.className='toast '+type;t.setAttribute('role','alert');
+  t.innerHTML='<span aria-hidden="true">'+icons[type]+'</span><span>'+escapeHtml(String(msg))+'</span>';
+  document.getElementById('toast-container').appendChild(t);
+  setTimeout(function(){t.classList.add('fade-out');setTimeout(function(){t.remove();},300);},duration);
+}
+function setLoading(on){
+  isLoading=on;
+  document.getElementById('loading-state').classList.toggle('visible',on);
+  document.getElementById('btn-search').disabled=on;
+  document.getElementById('recipe-input').disabled=on;
+}
+function setLoadingText(txt){var el=document.getElementById('loading-text');if(el)el.textContent=txt;}
+function scrollToResults(){var el=document.getElementById('results-area');if(el&&el.children.length>0)el.scrollIntoView({behavior:'smooth',block:'start'});}
+function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function sanitizeId(s){
+  var slug=s.replace(/[^a-zA-Z0-9가-힣]/g,'_');
+  var hash=0;for(var i=0;i<s.length;i++){hash=(hash*31+s.charCodeAt(i))>>>0;}
+  return slug+'_'+hash.toString(36);
+}
+var INGMAP={'고기':'🥩','돼지':'🥩','삼겹':'🥩','소고기':'🥩','닭':'🍗','생선':'🐟','새우':'🦐','달걀':'🥚','계란':'🥚','두부':'🫕','된장':'🍶','간장':'🍶','고추장':'🌶️','양파':'🧅','마늘':'🧄','파':'🌿','대파':'🌿','생강':'🫚','고추':'🌶️','청양':'🌶️','당근':'🥕','감자':'🥔','배추':'🥬','시금치':'🥬','버섯':'🍄','브로콜리':'🥦','토마토':'🍅','파프리카':'🫑','오이':'🥒','호박':'🎃','가지':'🍆','쌀':'🍚','밀가루':'🌾','면':'🍝','국수':'🍜','파스타':'🍝','치즈':'🧀','버터':'🧈','우유':'🥛','크림':'🥛','소금':'🧂','설탕':'🍬','참기름':'🫙','식용유':'🫙','올리브':'🫒','레몬':'🍋','사과':'🍎','배':'🍐','김치':'🥬','깻잎':'🌿'};
+function getIng(n){for(var k in INGMAP){if(n.indexOf(k)!==-1)return INGMAP[k];}return'🥄';}
+function parseMenus(text){
+  if(!text||!text.trim())return[];
+  var raw=text.split(/[,，\/\n]+/).map(function(s){return s.trim();}).filter(Boolean);
+  var seen={},unique=[];
+  for(var j=0;j<raw.length;j++){var m=raw[j];if(m.length>=1&&!seen[m]){seen[m]=true;unique.push(m);}}
+  return unique.slice(0,CONFIG.MAX_MENUS);
+}
+function buildRecipePrompt(name){
+  return '당신은 친절한 전문 요리사입니다. 아래 음식의 레시피를 한국어로 알려주세요.\n\n음식명: '+name+'\n\n반드시 아래 형식으로만 답변해주세요:\n\n## 재료\n- 재료명: 수량\n\n## 조리 방법\n1. 단계 설명\n\n재료는 10개 이내, 조리 단계는 5~8단계로 간단명료하게 작성해주세요.';
+}
+function buildPDFPrompt(text){
+  return '다음 PDF에서 추출한 레시피를 한국어로 요약해주세요.\n\n[PDF 내용]\n'+text.slice(0,4000)+'\n\n## PDF 레시피 요약\n\n### 주요 레시피 목록\n- 목록\n\n### 핵심 재료\n- 재료들\n\n### 조리 팁\n- 팁 목록';
+}
+async function readStream(res,onChunk,onDone){
+  var reader=res.body.getReader(),dec=new TextDecoder('utf-8'),buf='';
+  while(true){
+    var r=await reader.read();if(r.done)break;
+    buf+=dec.decode(r.value,{stream:true});
+    var lines=buf.split('\n');buf=lines.pop();
+    for(var i=0;i<lines.length;i++){
+      var t=lines[i].trim();if(!t.startsWith('data: '))continue;
+      var d=t.slice(6);if(d==='[DONE]'){if(onDone)onDone();return;}
+      try{var p=JSON.parse(d);var chunk=(p.choices&&p.choices[0]&&p.choices[0].delta&&p.choices[0].delta.content)||'';if(chunk)onChunk(chunk);}catch(e){}
+    }
+  }
+  if(onDone)onDone();
+}
+function makeAbortSignal(ms){
+  if(typeof AbortSignal!=='undefined'&&typeof AbortSignal.timeout==='function')return AbortSignal.timeout(ms);
+  var ctrl=new AbortController();setTimeout(function(){ctrl.abort();},ms);return ctrl.signal;
+}
+async function callAI(messages,onChunk,onDone){
+  var hasOR=CONFIG.OPENROUTER_API_KEY&&CONFIG.OPENROUTER_API_KEY.trim();
+  var hasOA=CONFIG.OPENAI_API_KEY&&CONFIG.OPENAI_API_KEY.trim();
+  if(!hasOR&&!hasOA)throw new Error('API 키가 설정되지 않았습니다. 파일 상단의 CONFIG에서 API 키를 입력해주세요.');
+  try{
+    if(!hasOR)throw new Error('OpenRouter API 키 없음');
+    var r1=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+CONFIG.OPENROUTER_API_KEY,'HTTP-Referer':window.location.href,'X-Title':'AI Cooking Class','Content-Type':'application/json'},body:JSON.stringify({model:CONFIG.OPENROUTER_MODEL,messages:messages,stream:true,max_tokens:2048}),signal:makeAbortSignal(30000)});
+    if(!r1.ok)throw new Error('OpenRouter '+r1.status);
+    await readStream(r1,onChunk,onDone);return;
+  }catch(e){console.warn('[AI] OpenRouter 실패:',e.message);showToast('기본 AI 연결 실패, 백업으로 전환합니다.','warning',5000);}
+  try{
+    var r2=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+CONFIG.OPENAI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({model:CONFIG.OPENAI_MODEL,messages:messages,stream:true,max_tokens:2048}),signal:makeAbortSignal(30000)});
+    if(!r2.ok)throw new Error('OpenAI '+r2.status+' — AI 서비스에 연결할 수 없습니다.');
+    await readStream(r2,onChunk,onDone);
+  }catch(e2){throw new Error(e2.message||'AI 서비스에 연결할 수 없습니다.');}
+}
+async function extractPDFText(file){
+  if(typeof pdfjsLib==='undefined')throw new Error('PDF.js 로드 실패');
+  var ab=await file.arrayBuffer();
+  var pdf=await pdfjsLib.getDocument({data:ab}).promise;
+  var pages=[];
+  for(var i=1;i<=Math.min(pdf.numPages,20);i++){var pg=await pdf.getPage(i);var ct=await pg.getTextContent();pages.push(ct.items.map(function(x){return x.str;}).join(' '));}
+  return pages.join('\n\n');
+}
+function parseRecipeText(raw){
+  var lines=raw.split('\n').map(function(l){return l.trim();}).filter(Boolean);
+  var ing=[],steps=[],sec=null;
+  for(var i=0;i<lines.length;i++){
+    var line=lines[i];
+    if(/^##\s*재료/.test(line)){sec='ing';continue;}
+    if(/^##\s*(조리|만드는|요리)/.test(line)){sec='steps';continue;}
+    if(/^#/.test(line)){sec=null;continue;}
+    if(sec==='ing'&&/^[-•]/.test(line))ing.push(line.replace(/^[-•]\s*/,'').trim());
+    else if(sec==='steps'&&/^\d+[.。)]/.test(line))steps.push(line.replace(/^\d+[.。)]\s*/,'').trim());
+  }
+  return{ingredients:ing,steps:steps};
+}
+var CDEC=['🍳','🥘','🫕','🍲','🥗','🍱','🍜','🥣','🫔','🥙'];
+function renderRecipeCard(name){
+  var card=document.createElement('article');
+  card.className='recipe-card';card.setAttribute('aria-label',name+' 레시피');
+  var deco=CDEC[Math.floor(Math.random()*CDEC.length)];
+  var sid=sanitizeId(name);
+  card.innerHTML='<div class="recipe-card-header"><h2 class="recipe-title">'+deco+' '+escapeHtml(name)+'</h2><div class="recipe-card-actions"><button class="btn-icon" onclick="copyRecipe(this)" title="복사" aria-label="레시피 복사">📋</button></div></div><div class="recipe-body" id="body-'+sid+'"><div class="streaming-text" id="stream-'+sid+'"></div></div><div class="card-footer"><button class="btn-secondary" onclick="closeCard(this)" aria-label="닫기">✕ 닫기</button></div>';
+  return card;
+}
+function finalizeRecipeCard(card,name,raw){
+  var sid=sanitizeId(name);var body=card.querySelector('#body-'+sid);if(!body)return;
+  var p=parseRecipeText(raw);var ing=p.ingredients,steps=p.steps;
+  if(!ing.length&&!steps.length){body.innerHTML='<div class="streaming-text">'+escapeHtml(raw)+'</div>';return;}
+  var h='';
+  if(ing.length){
+    h+='<div class="section-label"><span aria-hidden="true">🛒</span> 재료</div><div class="ingredients-grid">';
+    ing.forEach(function(x,i){h+='<span class="ingredient-badge" style="animation-delay:'+(i*.05)+'s">'+getIng(x)+' '+escapeHtml(x)+'</span>';});
+    h+='</div>';
+  }
+  if(steps.length){
+    h+='<div class="section-label"><span aria-hidden="true">👨‍🍳</span> 조리 방법</div><ol class="steps-list" aria-label="조리 단계">';
+    steps.forEach(function(x,j){h+='<li class="step-card" style="animation-delay:'+(j*.07)+'s"><div class="step-number" aria-hidden="true">'+(j+1)+'</div><p class="step-text">'+escapeHtml(x)+'</p></li>';});
+    h+='</ol>';
+  }
+  body.innerHTML=h;
+}
+function simpleMarkdown(text){
+  var lines=text.split('\n');
+  var out=lines.map(function(line){
+    var esc=escapeHtml(line);
+    var m3=line.match(/^###\s*(.*)/);
+    if(m3)return '<h3 style="font-weight:700;margin:16px 0 8px;color:var(--text)">'+escapeHtml(m3[1])+'</h3>';
+    var m2=line.match(/^##\s*(.*)/);
+    if(m2)return '<h2 style="font-weight:800;margin:20px 0 10px;color:var(--primary);font-size:1.1rem">'+escapeHtml(m2[1])+'</h2>';
+    var ml=line.match(/^-\s*(.*)/);
+    if(ml)return '<div style="padding:5px 0;display:flex;gap:8px"><span style="color:var(--primary);flex-shrink:0">&bull;</span><span>'+escapeHtml(ml[1])+'</span></div>';
+    if(esc==='')return '<br>';
+    return esc+'<br>';
+  });
+  return out.join('');
+}
+function fillExample(name){var inp=document.getElementById('recipe-input');inp.value=name;inp.focus();}
+async function handleSearch(){
+  if(isLoading)return;
+  if(selectedPDFFile){await handlePDFAnalysis();return;}
+  var inp=document.getElementById('recipe-input');var raw=inp.value.trim();
+  if(!raw){showToast('음식 이름을 입력해주세요!','warning');inp.focus();return;}
+  if(!/[가-힣a-zA-Z]/.test(raw)){showToast('올바른 음식 이름을 입력해주세요.','warning');return;}
+  var menus=parseMenus(raw);
+  if(!menus.length){showToast('메뉴를 인식할 수 없습니다.','warning');return;}
+  var rawSplitCount=raw.split(/[,，\/\n]+/).map(function(s){return s.trim();}).filter(Boolean).length;
+  if(rawSplitCount>CONFIG.MAX_MENUS)showToast('최대 '+CONFIG.MAX_MENUS+'개까지 처리합니다.','info');
+  clearResults();setLoading(true);setLoadingText('AI 요리사가 레시피를 준비하고 있어요...');
+  try{for(var i=0;i<menus.length;i++)await fetchAndRenderRecipe(menus[i],i);}
+  catch(err){showError(err.message);}
+  finally{setLoading(false);document.getElementById('btn-reset').classList.add('visible');scrollToResults();}
+}
+async function fetchAndRenderRecipe(name,idx){
+  var ra=document.getElementById('results-area');
+  var card=renderRecipeCard(name);card.style.animationDelay=(idx*.1)+'s';ra.appendChild(card);
+  var sid=sanitizeId(name);var sel=card.querySelector('#stream-'+sid);var full='';
+  await callAI([{role:'user',content:buildRecipePrompt(name)}],
+    function(c){full+=c;sel.textContent=full;},
+    function(){finalizeRecipeCard(card,name,full);});
+}
+async function handlePDFAnalysis(){
+  if(!selectedPDFFile)return;
+  clearResults();setLoading(true);setLoadingText('PDF를 분석하고 있어요...');
+  try{
+    var txt=await extractPDFText(selectedPDFFile);
+    if(!txt||txt.trim().length<20)throw new Error('PDF에서 텍스트를 추출할 수 없습니다. 이미지 기반 PDF는 지원하지 않습니다.');
+    var ra=document.getElementById('results-area');
+    var card=document.createElement('article');card.className='recipe-card';card.setAttribute('aria-label','PDF 레시피 분석');
+    card.innerHTML='<div class="recipe-card-header"><h2 class="recipe-title">📄 PDF 레시피 분석</h2><div class="recipe-card-actions"><button class="btn-icon" onclick="copyRecipe(this)" aria-label="복사">📋</button></div></div><div class="recipe-body" id="body-pdf"><div class="streaming-text" id="stream-pdf"></div></div><div class="card-footer"><button class="btn-secondary" onclick="closeCard(this)" aria-label="닫기">✕ 닫기</button></div>';
+    ra.appendChild(card);
+    var sel=card.querySelector('#stream-pdf');var full='';
+    await callAI([{role:'user',content:buildPDFPrompt(txt)}],
+      function(c){full+=c;sel.textContent=full;},
+      function(){sel.innerHTML=simpleMarkdown(full);});
+  }catch(err){showError(err.message);}
+  finally{setLoading(false);setLoadingText('AI 요리사가 레시피를 준비하고 있어요...');document.getElementById('btn-reset').classList.add('visible');scrollToResults();}
+}
+function handlePDFSelect(e){var f=e.target.files&&e.target.files[0];if(f)validateAndSetPDF(f);}
+function validateAndSetPDF(f){
+  if(!f.name.toLowerCase().endsWith('.pdf')){showToast('PDF 파일만 업로드 가능합니다.','error');return;}
+  if(f.size>CONFIG.PDF_MAX_BYTES){showToast('파일 크기가 10MB를 초과합니다.','error');return;}
+  selectedPDFFile=f;
+  document.getElementById('pdf-name-text').textContent=f.name;
+  document.getElementById('pdf-filename').classList.add('visible');
+  document.getElementById('recipe-input').placeholder='📄 PDF 분석 준비됨 — 레시피 찾기 버튼을 누르세요';
+  showToast('"'+f.name+'" 파일이 선택되었습니다.','success');
+}
+function clearPDF(){
+  selectedPDFFile=null;
+  document.getElementById('pdf-filename').classList.remove('visible');
+  document.getElementById('pdf-file-input').value='';
+  document.getElementById('recipe-input').placeholder='예: 된장찌개, 김치볶음밥, 파스타';
+}
+function clearResults(){document.getElementById('results-area').innerHTML='';document.getElementById('btn-reset').classList.remove('visible');}
+function showError(msg){
+  var ra=document.getElementById('results-area');
+  var ec=document.createElement('div');ec.className='error-card';
+  ec.innerHTML='<div class="error-icon" aria-hidden="true">😢</div><p>레시피를 가져오지 못했습니다.</p><small>'+escapeHtml(msg)+'</small>';
+  ra.appendChild(ec);showToast(msg,'error',6000);
+}
+function resetAll(){
+  clearResults();clearPDF();
+  document.getElementById('recipe-input').value='';
+  document.getElementById('recipe-input').placeholder='예: 된장찌개, 김치볶음밥, 파스타';
+  document.getElementById('recipe-input').focus();
+  setLoading(false);window.scrollTo({top:0,behavior:'smooth'});
+}
+function closeCard(btn){
+  var card=btn.closest('.recipe-card');
+  if(!card||card.dataset.closing)return;
+  card.dataset.closing='1';
+  card.animate([{opacity:1,transform:'scale(1)'},{opacity:0,transform:'scale(.95)'}],{duration:200,easing:'ease-out'}).onfinish=function(){card.remove();};
+}
+async function copyRecipe(btn){
+  var body=btn.closest('.recipe-card').querySelector('.recipe-body');
+  try{await navigator.clipboard.writeText(body?body.innerText:'');btn.innerHTML='✅';setTimeout(function(){btn.innerHTML='📋';},2000);showToast('클립보드에 복사되었습니다!','success');}
+  catch(e){showToast('복사 실패. 수동으로 선택해주세요.','error');}
+}
+(function(){
+  var z=document.getElementById('pdf-drop-zone');if(!z)return;
+  z.addEventListener('dragover',function(e){e.preventDefault();z.classList.add('dragover');});
+  z.addEventListener('dragleave',function(){z.classList.remove('dragover');});
+  z.addEventListener('drop',function(e){e.preventDefault();z.classList.remove('dragover');var f=e.dataTransfer.files&&e.dataTransfer.files[0];if(f)validateAndSetPDF(f);});
+})();
+document.getElementById('recipe-input').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();handleSearch();}});
+</script>
+</body>
+</html>
