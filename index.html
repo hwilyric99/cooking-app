@@ -200,16 +200,13 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--text
 <div class="toast-container" id="toast-container" aria-live="assertive" aria-atomic="true"></div>
 <script>
 var CONFIG={
-  OPENROUTER_API_KEY:'',
-  OPENAI_API_KEY:'',
-  OPENROUTER_MODEL:'deepseek/deepseek-v4-flash:free',
-  OPENAI_MODEL:'gpt-4o-mini',
   MAX_MENUS:5,
   PDF_MAX_BYTES:10485760
 };
 if(typeof pdfjsLib!=='undefined')
   pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 var isLoading=false,selectedPDFFile=null;
+// Background floaters
 (function(){
   var em=['🥕','🧅','🍅','🥦','🌶️','🧄','🥚','🍖','🍜','🥘','🥗','🍱','🫕','🫑','🧀','🥓','🫛','🍋','🥩','🫙'];
   var c=document.getElementById('bg-floaters');
@@ -219,6 +216,7 @@ var isLoading=false,selectedPDFFile=null;
     c.appendChild(el);
   });
 })();
+// Toast
 function showToast(msg,type,duration){
   type=type||'info';duration=duration||4000;
   var icons={info:'ℹ️',success:'✅',warning:'⚠️',error:'❌'};
@@ -241,8 +239,10 @@ function sanitizeId(s){
   var hash=0;for(var i=0;i<s.length;i++){hash=(hash*31+s.charCodeAt(i))>>>0;}
   return slug+'_'+hash.toString(36);
 }
+// Ingredient emoji map
 var INGMAP={'고기':'🥩','돼지':'🥩','삼겹':'🥩','소고기':'🥩','닭':'🍗','생선':'🐟','새우':'🦐','달걀':'🥚','계란':'🥚','두부':'🫕','된장':'🍶','간장':'🍶','고추장':'🌶️','양파':'🧅','마늘':'🧄','파':'🌿','대파':'🌿','생강':'🫚','고추':'🌶️','청양':'🌶️','당근':'🥕','감자':'🥔','배추':'🥬','시금치':'🥬','버섯':'🍄','브로콜리':'🥦','토마토':'🍅','파프리카':'🫑','오이':'🥒','호박':'🎃','가지':'🍆','쌀':'🍚','밀가루':'🌾','면':'🍝','국수':'🍜','파스타':'🍝','치즈':'🧀','버터':'🧈','우유':'🥛','크림':'🥛','소금':'🧂','설탕':'🍬','참기름':'🫙','식용유':'🫙','올리브':'🫒','레몬':'🍋','사과':'🍎','배':'🍐','김치':'🥬','깻잎':'🌿'};
 function getIng(n){for(var k in INGMAP){if(n.indexOf(k)!==-1)return INGMAP[k];}return'🥄';}
+// parseMenus
 function parseMenus(text){
   if(!text||!text.trim())return[];
   var raw=text.split(/[,，\/\n]+/).map(function(s){return s.trim();}).filter(Boolean);
@@ -250,12 +250,15 @@ function parseMenus(text){
   for(var j=0;j<raw.length;j++){var m=raw[j];if(m.length>=1&&!seen[m]){seen[m]=true;unique.push(m);}}
   return unique.slice(0,CONFIG.MAX_MENUS);
 }
+// buildRecipePrompt
 function buildRecipePrompt(name){
   return '당신은 친절한 전문 요리사입니다. 아래 음식의 레시피를 한국어로 알려주세요.\n\n음식명: '+name+'\n\n반드시 아래 형식으로만 답변해주세요:\n\n## 재료\n- 재료명: 수량\n\n## 조리 방법\n1. 단계 설명\n\n재료는 10개 이내, 조리 단계는 5~8단계로 간단명료하게 작성해주세요.';
 }
+// buildPDFPrompt
 function buildPDFPrompt(text){
   return '다음 PDF에서 추출한 레시피를 한국어로 요약해주세요.\n\n[PDF 내용]\n'+text.slice(0,4000)+'\n\n## PDF 레시피 요약\n\n### 주요 레시피 목록\n- 목록\n\n### 핵심 재료\n- 재료들\n\n### 조리 팁\n- 팁 목록';
 }
+// Stream reader
 async function readStream(res,onChunk,onDone){
   var reader=res.body.getReader(),dec=new TextDecoder('utf-8'),buf='';
   while(true){
@@ -270,26 +273,18 @@ async function readStream(res,onChunk,onDone){
   }
   if(onDone)onDone();
 }
+// AbortSignal.timeout polyfill
 function makeAbortSignal(ms){
   if(typeof AbortSignal!=='undefined'&&typeof AbortSignal.timeout==='function')return AbortSignal.timeout(ms);
   var ctrl=new AbortController();setTimeout(function(){ctrl.abort();},ms);return ctrl.signal;
 }
+// callAI
 async function callAI(messages,onChunk,onDone){
-  var hasOR=CONFIG.OPENROUTER_API_KEY&&CONFIG.OPENROUTER_API_KEY.trim();
-  var hasOA=CONFIG.OPENAI_API_KEY&&CONFIG.OPENAI_API_KEY.trim();
-  if(!hasOR&&!hasOA)throw new Error('API 키가 설정되지 않았습니다. 파일 상단의 CONFIG에서 API 키를 입력해주세요.');
-  try{
-    if(!hasOR)throw new Error('OpenRouter API 키 없음');
-    var r1=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+CONFIG.OPENROUTER_API_KEY,'HTTP-Referer':window.location.href,'X-Title':'AI Cooking Class','Content-Type':'application/json'},body:JSON.stringify({model:CONFIG.OPENROUTER_MODEL,messages:messages,stream:true,max_tokens:2048}),signal:makeAbortSignal(30000)});
-    if(!r1.ok)throw new Error('OpenRouter '+r1.status);
-    await readStream(r1,onChunk,onDone);return;
-  }catch(e){console.warn('[AI] OpenRouter 실패:',e.message);showToast('기본 AI 연결 실패, 백업으로 전환합니다.','warning',5000);}
-  try{
-    var r2=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+CONFIG.OPENAI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({model:CONFIG.OPENAI_MODEL,messages:messages,stream:true,max_tokens:2048}),signal:makeAbortSignal(30000)});
-    if(!r2.ok)throw new Error('OpenAI '+r2.status+' — AI 서비스에 연결할 수 없습니다.');
-    await readStream(r2,onChunk,onDone);
-  }catch(e2){throw new Error(e2.message||'AI 서비스에 연결할 수 없습니다.');}
+  var r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:messages}),signal:makeAbortSignal(30000)});
+  if(!r.ok){var e=await r.json().catch(function(){return{error:'AI 서비스에 연결할 수 없습니다.'};});throw new Error(e.error||'AI 서비스에 연결할 수 없습니다. ('+r.status+')');}
+  await readStream(r,onChunk,onDone);
 }
+// extractPDFText
 async function extractPDFText(file){
   if(typeof pdfjsLib==='undefined')throw new Error('PDF.js 로드 실패');
   var ab=await file.arrayBuffer();
@@ -298,6 +293,7 @@ async function extractPDFText(file){
   for(var i=1;i<=Math.min(pdf.numPages,20);i++){var pg=await pdf.getPage(i);var ct=await pg.getTextContent();pages.push(ct.items.map(function(x){return x.str;}).join(' '));}
   return pages.join('\n\n');
 }
+// Recipe parsing
 function parseRecipeText(raw){
   var lines=raw.split('\n').map(function(l){return l.trim();}).filter(Boolean);
   var ing=[],steps=[],sec=null;
