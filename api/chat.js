@@ -28,50 +28,51 @@ export default async function handler(req) {
   }
 
   const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
-  if (!OPENROUTER_KEY) {
-    return new Response(JSON.stringify({ error: 'API 키가 설정되지 않았습니다.' }), {
-      status: 500,
+  const OPENAI_KEY = process.env.OPENAI_API_KEY;
+
+  const streamHeaders = {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'X-Accel-Buffering': 'no',
+  };
+
+  // 1단계: 무료 모델 순서대로 시도
+  if (OPENROUTER_KEY) {
+    for (const model of FREE_MODELS) {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + OPENROUTER_KEY,
+          'HTTP-Referer': new URL(req.url).origin,
+          'X-Title': 'AI Cooking Class',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ model, messages, stream: true, max_tokens: 2048 }),
+      });
+      if (res.ok) return new Response(res.body, { headers: streamHeaders });
+      if (res.status !== 429 && res.status !== 404) break;
+    }
+  }
+
+  // 2단계: OpenAI 폴백
+  if (OPENAI_KEY) {
+    const res2 = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + OPENAI_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ model: 'gpt-4o-mini', messages, stream: true, max_tokens: 2048 }),
+    });
+    if (res2.ok) return new Response(res2.body, { headers: streamHeaders });
+    const err2 = await res2.text();
+    return new Response(JSON.stringify({ error: 'OpenAI 오류: ' + res2.status + ' ' + err2 }), {
+      status: res2.status,
       headers: { 'Content-Type': 'application/json' },
     });
   }
 
-  for (const model of FREE_MODELS) {
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + OPENROUTER_KEY,
-        'HTTP-Referer': new URL(req.url).origin,
-        'X-Title': 'AI Cooking Class',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        stream: true,
-        max_tokens: 2048,
-      }),
-    });
-
-    if (res.ok) {
-      return new Response(res.body, {
-        headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'X-Accel-Buffering': 'no',
-        },
-      });
-    }
-
-    if (res.status !== 429 && res.status !== 404) {
-      const err = await res.text();
-      return new Response(JSON.stringify({ error: 'AI 오류: ' + res.status + ' ' + err }), {
-        status: res.status,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-  }
-
-  return new Response(JSON.stringify({ error: '사용자가 너무 많아 잠시 후 다시 시도해주세요.' }), {
+  return new Response(JSON.stringify({ error: '잔시 후 다시 시도해주세요.' }), {
     status: 429,
     headers: { 'Content-Type': 'application/json' },
   });
