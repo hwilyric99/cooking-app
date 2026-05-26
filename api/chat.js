@@ -2,8 +2,10 @@ export const config = { runtime: 'edge' };
 
 const FREE_MODELS = [
   'deepseek/deepseek-v4-flash:free',
-  'meta-llama/llama-3.3-70b-instruct:free',
-  'google/gemma-3-12b-it:free',
+  'deepseek/deepseek-r1:free',
+  'meta-llama/llama-3.1-8b-instruct:free',
+  'mistralai/mistral-7b-instruct:free',
+  'qwen/qwen-2.5-7b-instruct:free',
 ];
 
 export default async function handler(req) {
@@ -60,7 +62,7 @@ export default async function handler(req) {
       });
     }
 
-    if (res.status !== 429) {
+    if (res.status !== 429 && res.status !== 404) {
       const err = await res.text();
       return new Response(JSON.stringify({ error: 'AI 오류: ' + res.status + ' ' + err }), {
         status: res.status,
